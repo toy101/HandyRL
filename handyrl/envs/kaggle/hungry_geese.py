@@ -168,15 +168,37 @@ class Environment(BaseEnvironment):
     def outcome(self):
         # return terminal outcomes
         # 1st: 1.0 2nd: 0.33 3rd: -0.33 4th: -1.00
+
+        # これを1st: 1.0 2nd: -0.33 3rd: -0.66 4th: -1.00にする
         rewards = {o['observation']['index']: o['reward'] for o in self.obs_list[-1]}
-        outcomes = {p: 0 for p in self.players()}
+        outcomes = {p: -1.0 for p in self.players()}
+
+        # 1st のプレイヤーを探す
+
+        max_reward = -999
+        first_player = [] # 同着1stの可能性も考えて
+
         for p, r in rewards.items():
+
+            if max_reward == r:
+                first_player.append(p)
+            elif max_reward < r:
+                first_player = []
+                first_player.append(p)
+                max_reward = r
+
             for pp, rr in rewards.items():
                 if p != pp:
                     if r > rr:
                         outcomes[p] += 1 / (self.NUM_AGENTS - 1)
-                    elif r < rr:
-                        outcomes[p] -= 1 / (self.NUM_AGENTS - 1)
+                    # elif r < rr:
+                    #     outcomes[p] -= 1 / (self.NUM_AGENTS - 1)
+
+        # このままだと1stのoutcomeは-1.11e-16とか
+        # これを修正する
+        for p in first_player:
+            outcomes[p] = 1 / len(first_player)
+
         return outcomes
 
     def legal_actions(self, player):
